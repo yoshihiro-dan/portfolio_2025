@@ -44,8 +44,8 @@ JavaScriptを活用し、視覚的にも機能的にも差別化を図ってい�
 1. リポジトリをクローン
 
    ```sh
-   git clone https://github.com/your-username/your-repository.git
-   cd your-repository
+   git clone https://github.com/yoshihiro-dan/portfolio_2025.git
+   cd portfolio_2025
    ```
 
 2. パッケージをインストール
@@ -62,7 +62,7 @@ JavaScriptを活用し、視覚的にも機能的にも差別化を図ってい�
 
 ## デモ
 
-[デモページを見る](https://your-portfolio-url.com)
+[デモページを見る](https://nisot.noor.jp/works/)
 
 ## ライセンス
 
