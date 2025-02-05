@@ -62,8 +62,8 @@ JavaScriptを活用し、視覚的にも機能的にも差別化を図ってい�
 
 ## デモ
 
-[デモページを見る](https://nisot.noor.jp/works/)
-[デモページを見る](https://nisot.noor.jp/works/skills-achievements.html)
+- [デモページを見る](https://nisot.noor.jp/works/)
+- [デモページを見る](https://nisot.noor.jp/works/skills-achievements.html)
 
 ## ライセンス
 
