@@ -2,13 +2,6 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import gsap from 'gsap';
 
-// ロードアニメーション
-window.addEventListener("DOMContentLoaded", () => {
-    requestAnimationFrame(() => {
-        document.body.classList.add("fade-in");
-    });
-});
-
 // カスタムシェーダーの定義
 const vertexShader = `
 varying vec2 vUv;
@@ -117,60 +110,61 @@ let webglBoxes = isPC()
 
 // WebGL初期化関数
 function initializeWebGL() {
-    webglBoxes.forEach(webglBox => {
-        if (cubes.has(webglBox)) return; // 既に存在する場合は処理しない
+    return new Promise((resolve) => {
+        webglBoxes.forEach(webglBox => {
+            if (cubes.has(webglBox)) return; // 既に存在する場合は処理しない
 
-        const canvas = webglBox.querySelector('canvas.webgl');
-        const boxRect = webglBox.getBoundingClientRect();
-        const boxSize = Math.min(boxRect.width, boxRect.height);
+            const canvas = webglBox.querySelector('canvas.webgl');
+            const boxRect = webglBox.getBoundingClientRect();
+            const boxSize = Math.min(boxRect.width, boxRect.height);
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-        camera.position.z = 1.5;
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+            camera.position.z = 1.5;
 
-        const renderer = new THREE.WebGLRenderer({
-            canvas,
-            antialias: true,
-            alpha: true,
-            premultipliedAlpha: true
+            const renderer = new THREE.WebGLRenderer({
+                canvas,
+                antialias: true,
+                alpha: true,
+                premultipliedAlpha: true
+            });
+            renderer.setSize(boxSize, boxSize);
+
+            cameras.set(webglBox, camera);
+            renderers.set(webglBox, renderer);
+            scenes.set(webglBox, scene);
+
+            const section = webglBox.closest('section');
+            const sectionId = section ? section.id : null;
+            const currentSectionId = getCurrentSectionId();
+            const initialSectionId = sectionId || currentSectionId;
+
+            const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), createShaderMaterial());
+            scene.add(cube);
+            addTextToCube(cube, boxRect.width, boxRect.height, initialSectionId);
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.enableZoom = false;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                cube.rotation.y += 0.01;
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            cubes.set(webglBox, cube);
         });
-        renderer.setSize(boxSize, boxSize);
 
-        cameras.set(webglBox, camera);
-        renderers.set(webglBox, renderer);
-        scenes.set(webglBox, scene);
-
-        const section = webglBox.closest('section');
-        const sectionId = section ? section.id : null;
-        const initialSectionId = sectionId || "About Me";
-
-        const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), createShaderMaterial());
-        scene.add(cube);
-        addTextToCube(cube, boxRect.width, boxRect.height, initialSectionId);
-
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.enableZoom = false;
-
-        function animate() {
-            requestAnimationFrame(animate);
-            cube.rotation.y += 0.01;
-            controls.update();
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        cubes.set(webglBox, cube);
+        resolve();
     });
 }
-
-// 初回実行
-initializeWebGL();
 
 // キューブのテキスト変更アニメーション
 let isAnimating = false;
 let lastSectionId = '';
-
 function animateCube(newText) {
     if (window.innerWidth < 768 || isAnimating) return;
     isAnimating = true;
@@ -229,7 +223,7 @@ function getCurrentSectionId() {
 
 function initializeCubeText() {
     const currentSectionId = getCurrentSectionId();
-    if (currentSectionId && currentSectionId !== lastSectionId) {
+    if (currentSectionId) {
         animateCube(currentSectionId);
     }
 }
@@ -243,10 +237,19 @@ function updateScrollListener() {
     }
 }
 
+// ロードアニメーション
+window.addEventListener("DOMContentLoaded", () => {
+    requestAnimationFrame(() => {
+        document.body.classList.add("fade-in");
+    });
+});
+
 // 初回実行
+initializeWebGL().then(() => {
+    initializeCubeText();
+});
 updateScrollListener();
 window.addEventListener('resize', updateScrollListener);
-window.addEventListener('load', initializeCubeText);
 
 let resizeTimeout = null;
 function handleResize() {
@@ -294,7 +297,9 @@ function handleResize() {
             ? document.querySelectorAll('aside .webgl-box')
             : document.querySelectorAll('section .webgl-box');
 
-        initializeWebGL();
+        initializeWebGL().then(() => {
+            initializeCubeText();
+        });
     }, 300);
 }
 

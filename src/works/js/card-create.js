@@ -168,6 +168,13 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
+// ページ表示時に slide-out クラスを削除
+window.addEventListener("pageshow", (event) => {
+    if (event.persisted) {
+        document.body.classList.remove("slide-out");
+    }
+});
+
 animate();
 // console.log("run 2")
 
