@@ -105,7 +105,7 @@ const hologramMaterial = new THREE.ShaderMaterial({
 
 // テクスチャをユニフォームにセット
 const loader = new THREE.TextureLoader();
-loader.load('./textures/name-card.png', (texture) => {
+loader.load('/works/textures/name-card.png', (texture) => {
     texture.encoding = THREE.sRGBEncoding;
     uniforms.uTexture.value = texture;
     uniforms.uTexture.needsUpdate = true;
@@ -218,7 +218,10 @@ const handleClick = async (event) => {
         // window.open("/skills-achievements.html", "_blank");
 
         // 新しいページURL
-        const targetUrl = "/skills-achievements.html";
+        const currentUrl = window.location.pathname;
+        const pathParts = currentUrl.split('/');
+        const lastPath = pathParts.filter(Boolean).pop();
+        const targetUrl = lastPath ? `/${lastPath}/skills-achievements.html` : '/skills-achievements.html';
 
         if (document.startViewTransition) {
             document.startViewTransition(() => {

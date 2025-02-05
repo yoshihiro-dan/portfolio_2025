@@ -1,5 +1,5 @@
 import restart from 'vite-plugin-restart'
-import { resolve } from 'path';
+import path from 'path';
 
 export default {
     root: 'src/',  // ソースファイルのルート
@@ -7,17 +7,21 @@ export default {
     server:
     {
         host: true,
-        open: !('SANDBOX_URL' in process.env || 'CODESANDBOX_HOST' in process.env)
+        open: !('SANDBOX_URL' in process.env || 'CODESANDBOX_HOST' in process.env),
+        fs: {
+            allow: ['works', 'works/img', 'works/css', 'works/js']
+        }
     },
     build:
     {
+        assetsDir: 'works/assets', // assets を /works/assets/ に配置
         outDir: '../dist',
         emptyOutDir: true,
         sourcemap: true,
         rollupOptions: {
             input: {
-                main: resolve(__dirname, 'src/index.html'),
-                skills: resolve(__dirname, 'src/skills-achievements.html') // 追加する HTML ファイル
+                main: path.resolve(__dirname, 'src/works/index.html'), // メインページ
+                works: path.resolve(__dirname, 'src/works/skills-achievements.html') // 追加ページ
             }
         }
     },
