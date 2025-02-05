@@ -30,6 +30,7 @@
           "knowsAbout": ["JavaScript", "HTML", "CSS", "React", "Webコーディング", "フロントエンド開発"]
         }
     </script>
+    <script src="https://riversun.github.io/chatux/chatux.min.js" defer></script>
     <link rel="stylesheet" href="./css/normalize.css">
     <link rel="stylesheet" href="./css/index.css">
 </head>
@@ -43,13 +44,10 @@
             <h2 id="portfolio-title" class="visually-hidden">ポートフォリオの紹介</h2>
             <p class="visually-hidden">JavaScriptを活かしたWebコーディングやアニメーションを紹介するポートフォリオです。</p>
             <canvas class="webgl" aria-hidden="true"></canvas>
-            <div class="stars"></div>
         </section>
     </main>
 
-    <script src="https://riversun.github.io/chatux/chatux.min.js" defer></script>
-    <script src="./js/chatux/chatux-create.js" defer></script>
+    <script src="/js/chatux-create.js" type="module" defer></script>
     <script src="./js/card-create.js" type="module" defer></script>
-    <!-- <script src="./js/star-create.js" defer></script> -->
 </body>
 </html>
