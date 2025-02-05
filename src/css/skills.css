@@ -1,0 +1,76 @@
+body {
+    background-color: #f0f4f1;
+    transform: translateY(-1.0%);
+    opacity: 0;
+    transition: transform 0.8s ease-in-out, opacity 0.8s ease-in-out;
+}
+
+/* ページ遷移後にスライドイン */
+body.fade-in {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-1.0%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.webgl-box {
+    border-radius: 1.5vw;
+    /* background-color: #28282b; */
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 20vw;
+}
+
+aside .webgl-box {
+    display: flex;
+}
+
+section .webgl-box {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 768px) {
+    .webgl-box {
+        height: 50vw;
+    }
+
+    aside .webgl-box {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+    
+    section .webgl-box {
+        display: flex;
+        position: relative;
+        width: 100%;
+        height: 50vw;
+        margin: 0;
+    }
+}
