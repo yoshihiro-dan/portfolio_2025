@@ -41,24 +41,6 @@ canvas.webgl {
     }
 }
 
-/* 星のスタイル */
-.star {
-    position: absolute;
-    display: block;
-    background-color: #fff;
-    border-radius: 50%;
-    box-shadow: 0 0 4px 2px rgba(#fff, 0.2);
-    opacity: 0;
-    animation: twinkle 5s infinite;
-}
-
-/* 星がキラキラ光るアニメーション */
-@keyframes twinkle {
-    0% {opacity: 0;}
-    50% {transform: scale(1.1);opacity: 1;}
-    100% {opacity: 0.1;transform: scale(1);}
-}
-
 iframe[id*="riversun_window"] + div {
     background-color: transparent !important;
 }
@@ -78,6 +60,15 @@ div[id*="window"][id*="_title"] {
 
 #chat_wakeup.chatux-btn-chat path {
     fill: #1a2a48;
+}
+
+@media (max-width: 768px) {
+    body {
+        height: 100svh;
+    }
+    /* #chat_wakeup.chatux-btn-chat {
+        bottom: 80px !important;
+    } */
 }
 
 #my-chat-bot {
