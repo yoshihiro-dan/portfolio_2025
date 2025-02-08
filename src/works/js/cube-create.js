@@ -98,19 +98,60 @@ function addTextToCube(cube, width, height, text) {
 const isPC = () => window.innerWidth >= 768;
 
 // キューブやWebGLのリソースを管理
+let animationFrameId;
 const cubes = new Map();
 const cameras = new Map();
 const renderers = new Map();
 const scenes = new Map();
 
-// 初期の webglBoxes 取得
-let webglBoxes = isPC()
+// メモリリーク防止のためのリソース解放関数
+function disposeWebGL() {
+    cancelAnimationFrame(animationFrameId);
+
+    // 初期の webglBoxes 取得
+    let webglBoxes = isPC()
     ? document.querySelectorAll('aside .webgl-box')
     : document.querySelectorAll('section .webgl-box');
+    cubes.forEach((cube, webglBox) => {
+        if (!cube) return;
+        cube.traverse(object => {
+            if (object instanceof THREE.Mesh) {
+                if (object.material.map) {
+                    object.material.map.dispose();
+                }
+                object.material.dispose();
+                object.geometry.dispose();
+            }
+        });
+        cube.removeFromParent();
+    });
+
+    scenes.forEach(scene => scene.clear());
+    renderers.forEach(renderer => renderer.dispose());
+
+    cubes.clear();
+    cameras.clear();
+    renderers.clear();
+    scenes.clear();
+
+    webglBoxes.forEach(webglBox => {
+        webglBox.innerHTML = '';
+        // **新しい canvas を作成**
+        const newCanvas = document.createElement('canvas');
+        newCanvas.classList.add('webgl');
+        newCanvas.setAttribute('aria-hidden', 'true');
+        webglBox.appendChild(newCanvas);
+    });
+}
 
 // WebGL初期化関数
 function initializeWebGL() {
     return new Promise((resolve) => {
+        // 初期の webglBoxes 取得
+        let webglBoxes = isPC()
+        ? document.querySelectorAll('aside .webgl-box')
+        : document.querySelectorAll('section .webgl-box');
+
         webglBoxes.forEach(webglBox => {
             if (cubes.has(webglBox)) return; // 既に存在する場合は処理しない
 
@@ -147,11 +188,16 @@ function initializeWebGL() {
             controls.enableDamping = true;
             controls.enableZoom = false;
 
+            let lastTime = 0;
             function animate() {
+                const currentTime = performance.now();
+                if (currentTime - lastTime > 1000 / 80) { // フレームレートを制限
+                    lastTime = currentTime;
+                    cube.rotation.y += 0.01;
+                    controls.update();
+                    renderer.render(scene, camera);
+                }
                 requestAnimationFrame(animate);
-                cube.rotation.y += 0.01;
-                controls.update();
-                renderer.render(scene, camera);
             }
             animate();
 
@@ -244,16 +290,37 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// 初回実行
-initializeWebGL().then(() => {
-    initializeCubeText();
+// **ページのロード時**
+window.addEventListener("DOMContentLoaded", () => {
+    initializeWebGL().then(() => {
+        initializeCubeText();
+    });
+    updateScrollListener();
 });
-updateScrollListener();
+
 window.addEventListener('resize', updateScrollListener);
+
+// **ページバック時の対応**
+window.addEventListener("pageshow", (event) => {
+    if (event.persisted) {
+        disposeWebGL();
+        initializeWebGL().then(() => {
+            initializeCubeText();
+        });
+    }
+});
+
+// **ページを離れる前にリソース解放**
+window.addEventListener("beforeunload", disposeWebGL)
 
 let resizeTimeout = null;
 function handleResize() {
     clearTimeout(resizeTimeout);
+
+    // 初期の webglBoxes 取得
+    let webglBoxes = isPC()
+    ? document.querySelectorAll('aside .webgl-box')
+    : document.querySelectorAll('section .webgl-box');
     resizeTimeout = setTimeout(() => {
         webglBoxes.forEach(webglBox => {
             const renderer = renderers.get(webglBox);
@@ -297,6 +364,7 @@ function handleResize() {
             ? document.querySelectorAll('aside .webgl-box')
             : document.querySelectorAll('section .webgl-box');
 
+        disposeWebGL();
         initializeWebGL().then(() => {
             initializeCubeText();
         });

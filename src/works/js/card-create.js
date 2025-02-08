@@ -5,260 +5,292 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 const canvas = document.querySelector('canvas.webgl');
 
 // Scene & Camera
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 4;
+let scene, camera, renderer;
 
-const rendererParameters = {}
-const renderer = new THREE.WebGLRenderer({
-    canvas,
-    antialias: true,
-    alpha: true
-});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+function initializeWebGL() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 4;
 
-// OrbitControls
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.enableZoom = false;
+    renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true,
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
 
-// Uniforms
-const uniforms = {
-    uTime: { value: 0.0 },
-    uColor: { value: new THREE.Color(0x4fc3f7) },
-    uGlowStrength: { value: 0.5 },
-    uTexture: { value: null },
-};
+    // OrbitControls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.enableZoom = false;
 
-// ガラス用マテリアル作成
-const glassMaterial = new THREE.MeshStandardMaterial({
-    metalness: 0.8,
-    roughness: 0.5,
-    transparent: true,
-    opacity: 0.1,
-    side: THREE.DoubleSide
-});
+    // Uniforms
+    const uniforms = {
+        uTime: { value: 0.0 },
+        uColor: { value: new THREE.Color(0x4fc3f7) },
+        uGlowStrength: { value: 0.5 },
+        uTexture: { value: null },
+    };
 
-// ホログラムマテリアル
-const hologramMaterial = new THREE.ShaderMaterial({
-    vertexShader: `
-        varying vec2 vUv;
-        varying vec3 vNormal;
-        uniform float uTime;
+    // ガラス用マテリアル作成
+    const glassMaterial = new THREE.MeshStandardMaterial({
+        metalness: 0.8,
+        roughness: 0.5,
+        transparent: true,
+        opacity: 0.1,
+        side: THREE.DoubleSide
+    });
 
-        // 乱数生成
-        float random2D(vec2 st) {
-            return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453);
-        }
+    // ホログラムマテリアル
+    const hologramMaterial = new THREE.ShaderMaterial({
+        vertexShader: `
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            uniform float uTime;
 
-        void main() {
-            // UV座標
-            vUv = uv;
+            // 乱数生成
+            float random2D(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453);
+            }
 
-            // ポジション操作
-            vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+            void main() {
+                // UV座標
+                vUv = uv;
+                vUv.y = 1.0 - vUv.y;
 
-            // グリッチ（ランダム性強化）
-            float glitchTime = uTime - modelPosition.y;
-            float glitchStrength = sin(glitchTime * 1.5) + sin(glitchTime * 3.0) + sin(glitchTime * 6.0);
-            glitchStrength /= 3.0;
-            glitchStrength = smoothstep(0.3, 1.0, glitchStrength);
-            glitchStrength *= 0.25;
+                // ポジション操作
+                vec4 modelPosition = modelMatrix * vec4(position, 1.0);
 
-            modelPosition.x += (random2D(modelPosition.xz + uTime) - 0.5) * glitchStrength;
-            modelPosition.z += (random2D(modelPosition.zx + uTime) - 0.5) * glitchStrength;
+                // グリッチ（ランダム性強化）
+                float glitchTime = uTime - modelPosition.y;
+                float glitchStrength = sin(glitchTime * 1.5) + sin(glitchTime * 3.0) + sin(glitchTime * 6.0);
+                glitchStrength /= 3.0;
+                glitchStrength = smoothstep(0.3, 1.0, glitchStrength);
+                glitchStrength *= 0.25;
 
-            gl_Position = projectionMatrix * viewMatrix * modelPosition;
+                modelPosition.x += (random2D(modelPosition.xz + uTime) - 0.5) * glitchStrength;
+                modelPosition.z += (random2D(modelPosition.zx + uTime) - 0.5) * glitchStrength;
 
-            // 法線情報
-            vec4 modelNormal = modelMatrix * vec4(normal, 0.0);
-            vNormal = modelNormal.xyz;
-        }
-    `,
-    fragmentShader: `
-        varying vec2 vUv;
-        varying vec3 vNormal;
-        uniform sampler2D uTexture;
+                gl_Position = projectionMatrix * viewMatrix * modelPosition;
 
-        void main() {
-            // 法線の計算
-            vec3 normal = normalize(vNormal);
-            if (!gl_FrontFacing) normal *= -1.0;
+                // 法線情報
+                vec4 modelNormal = modelMatrix * vec4(normal, 0.0);
+                vNormal = modelNormal.xyz;
+            }
+        `,
+        fragmentShader: `
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            uniform sampler2D uTexture;
 
-            // テクスチャカラー取得
-            vec4 textureColor = texture2D(uTexture, vUv);
+            void main() {
+                // 法線の計算
+                vec3 normal = normalize(vNormal);
+                if (!gl_FrontFacing) normal *= -1.0;
 
-            // ホログラムカラー
-            vec3 hologramColor = vec3(0.5, 0.7, 0.2);
+                // テクスチャカラー取得
+                vec4 textureColor = texture2D(uTexture, vUv);
 
-            // 最終色の合成
-            vec3 finalColor = mix(textureColor.rgb, hologramColor, 0.0);
+                // ホログラムカラー
+                vec3 hologramColor = vec3(0.5, 0.7, 0.2);
 
-            gl_FragColor = vec4(finalColor, textureColor.a);
-        }
-    `,
-    uniforms,
-    transparent: true,
-    side: THREE.DoubleSide
-});
+                // 最終色の合成
+                vec3 finalColor = mix(textureColor.rgb, hologramColor, 0.0);
 
-// テクスチャをユニフォームにセット
-const loader = new THREE.TextureLoader();
-loader.load('/works/textures/name-card.png', (texture) => {
-    texture.encoding = THREE.sRGBEncoding;
-    uniforms.uTexture.value = texture;
-    uniforms.uTexture.needsUpdate = true;
-    canvas.style.opacity = '1';
-});
+                gl_FragColor = vec4(finalColor, textureColor.a);
+            }
+        `,
+        uniforms,
+        transparent: true,
+        side: THREE.DoubleSide
+    });
 
-// PlaneGeometry 作成
-const cardGeometry = new THREE.PlaneGeometry(3, 2, 50, 50);
+    // テクスチャをユニフォームにセット
+    const loader = new THREE.TextureLoader();
+    loader.load('/works/textures/name-card.png', (texture) => {   
+        texture.flipY = false;
+        texture.encoding = THREE.sRGBEncoding;
+        uniforms.uTexture.value = texture;
+        uniforms.uTexture.needsUpdate = true;
+        canvas.style.opacity = '1';
+    });
 
-// ガラス用メッシュ
-const glassMesh = new THREE.Mesh(cardGeometry, glassMaterial);
+    // PlaneGeometry 作成
+    const cardGeometry = new THREE.PlaneGeometry(3, 2, 50, 50);
 
-// ホログラム用メッシュ
-const hologramMesh = new THREE.Mesh(cardGeometry, hologramMaterial);
-hologramMesh.position.z = 0.01;
+    // ガラス用メッシュ
+    const glassMesh = new THREE.Mesh(cardGeometry, glassMaterial);
 
-// グループ化してシーンに追加
-const cardGroup = new THREE.Group();
-cardGroup.add(glassMesh);
-cardGroup.add(hologramMesh);
-scene.add(cardGroup);
+    // ホログラム用メッシュ
+    const hologramMesh = new THREE.Mesh(cardGeometry, hologramMaterial);
+    hologramMesh.position.z = 0.01;
 
-// ライトの追加
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambientLight);
+    // グループ化してシーンに追加
+    const cardGroup = new THREE.Group();
+    cardGroup.add(glassMesh);
+    cardGroup.add(hologramMesh);
+    scene.add(cardGroup);
 
-const pointLight = new THREE.PointLight(0xffffff, 10, 100);
-pointLight.position.set(5, 5, 5);
-scene.add(pointLight);
+    // ライトの追加
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
 
-glassMaterial.envMapIntensity = 1.0; // 環境マップの反射強度
-glassMaterial.needsUpdate = true;
+    const pointLight = new THREE.PointLight(0xffffff, 10, 100);
+    pointLight.position.set(5, 5, 5);
+    scene.add(pointLight);
 
-// アニメーションループ
-const clock = new THREE.Clock();
+    glassMaterial.envMapIntensity = 1.0; // 環境マップの反射強度
+    glassMaterial.needsUpdate = true;
 
-const maxRotationX = Math.PI;
-const minRotationX = -Math.PI;
-const maxRotationY = Math.PI;
-const minRotationY = -Math.PI;
+    // アニメーションループ
+    const clock = new THREE.Clock();
 
-// 8の字の軌道に基づく振動パラメータ
-const frequencyX = 0.5;
-const frequencyY = 0.5;
-const amplitudeX = Math.PI / 4.0;  // 横方向の振幅
-const amplitudeY = Math.PI / 6.0;  // 縦方向の振幅
+    const maxRotationX = Math.PI;
+    const minRotationX = -Math.PI;
+    const maxRotationY = Math.PI;
+    const minRotationY = -Math.PI;
 
-// 最初の状態を正面から開始
-let initialTimeOffset = Math.PI;
+    // 8の字の軌道に基づく振動パラメータ
+    const frequencyX = 0.5;
+    const frequencyY = 0.5;
+    const amplitudeX = Math.PI / 4.0;  // 横方向の振幅
+    const amplitudeY = Math.PI / 6.0;  // 縦方向の振幅
 
-function animate() {
-    const elapsedTime = clock.getElapsedTime();
+    // 最初の状態を正面から開始
+    let initialTimeOffset = Math.PI;
 
-    cardGroup.rotation.x = Math.max(minRotationX, Math.min(maxRotationX, amplitudeX * Math.sin(frequencyX * elapsedTime + initialTimeOffset)));
-    cardGroup.rotation.y = Math.max(minRotationY, Math.min(maxRotationY, amplitudeY * Math.cos(frequencyY * elapsedTime + initialTimeOffset)));
+    function animate() {
+        const elapsedTime = clock.getElapsedTime();
 
-    uniforms.uTime.value = elapsedTime;
-    controls.update();
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
-}
+        cardGroup.rotation.x = Math.max(minRotationX, Math.min(maxRotationX, amplitudeX * Math.sin(frequencyX * elapsedTime + initialTimeOffset)));
+        cardGroup.rotation.y = Math.max(minRotationY, Math.min(maxRotationY, amplitudeY * Math.cos(frequencyY * elapsedTime + initialTimeOffset)));
 
-// ページ表示時に slide-out クラスを削除
-window.addEventListener("pageshow", (event) => {
-    if (event.persisted) {
-        document.body.classList.remove("slide-out");
-    }
-});
-
-animate();
-// console.log("run 2")
-
-// Raycaster とマウス座標
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-const targets = [glassMesh, hologramMesh];
-
-// レイをセットする処理
-const setRay = (event) => {
-    // マウス座標を正規化 (-1 to 1)
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    // カメラの前方 1 ユニット手前をレイの発射位置にする
-    const rayOrigin = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z - 1.0);
-
-    // マウス座標に基づく方向を計算
-    const rayDirection = new THREE.Vector3();
-    raycaster.setFromCamera(mouse, camera);
-    raycaster.ray.direction.normalize();
-    rayDirection.copy(raycaster.ray.direction);
-
-    // カスタム発射位置からレイを投射
-    raycaster.set(rayOrigin, rayDirection);
-
-    return raycaster.intersectObjects(targets, false);
-};
-
-// カーソルを更新する処理
-const updateCursor = (intersects) => {
-    if (intersects.length > 0) {
-        document.body.style.cursor = 'pointer';
-    } else {
-        document.body.style.cursor = 'default';
-    }
-};
-
-// クリック時の遷移処理
-const handleClick = async (event) => {
-    // canvas上でクリックされたかチェック
-    if (!canvas.contains(event.target)) {
-        return;
+        uniforms.uTime.value = elapsedTime;
+        controls.update();
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
     }
 
-    const intersects = setRay(event);
-    if (intersects.length > 0) {
-        // window.open("/skills-achievements.html", "_blank");
+    animate();
 
-        // 新しいページURL
-        const currentUrl = window.location.pathname;
-        const pathParts = currentUrl.split('/');
-        const lastPath = pathParts.filter(Boolean).pop();
-        const targetUrl = lastPath ? `/${lastPath}/skills-achievements.html` : '/skills-achievements.html';
+    // Raycaster とマウス座標
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const targets = [glassMesh, hologramMesh];
 
-        if (document.startViewTransition) {
-            document.startViewTransition(() => {
+    // レイをセットする処理
+    const setRay = (event) => {
+        // マウス座標を正規化 (-1 to 1)
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // カメラの前方 1 ユニット手前をレイの発射位置にする
+        const rayOrigin = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z - 1.0);
+
+        // マウス座標に基づく方向を計算
+        const rayDirection = new THREE.Vector3();
+        raycaster.setFromCamera(mouse, camera);
+        raycaster.ray.direction.normalize();
+        rayDirection.copy(raycaster.ray.direction);
+
+        // カスタム発射位置からレイを投射
+        raycaster.set(rayOrigin, rayDirection);
+
+        return raycaster.intersectObjects(targets, false);
+    };
+
+    // カーソルを更新する処理
+    const updateCursor = (intersects) => {
+        if (intersects.length > 0) {
+            document.body.style.cursor = 'pointer';
+        } else {
+            document.body.style.cursor = 'default';
+        }
+    };
+
+    // クリック時の遷移処理
+    const handleClick = async (event) => {
+        // canvas上でクリックされたかチェック
+        if (!canvas.contains(event.target)) {
+            return;
+        }
+
+        const intersects = setRay(event);
+        if (intersects.length > 0) {
+            // 新しいページURL
+            const currentUrl = window.location.pathname;
+            const pathParts = currentUrl.split('/');
+            const lastPath = pathParts.filter(Boolean).pop();
+            const targetUrl = lastPath ? `/${lastPath}/skills-achievements.html` : '/skills-achievements.html';
+
+            if (document.startViewTransition) {
+                document.startViewTransition(() => {
+                    document.body.classList.add("slide-out");
+                    setTimeout(() => {
+                        window.location.href = targetUrl;
+                    }, 500);
+                });
+            } else {
+                // フォールバック処理（非対応ブラウザ向け）
                 document.body.classList.add("slide-out");
                 setTimeout(() => {
                     window.location.href = targetUrl;
                 }, 500);
-            });
-        } else {
-            // フォールバック処理（非対応ブラウザ向け）
-            document.body.classList.add("slide-out");
-            setTimeout(() => {
-                window.location.href = targetUrl;
-            }, 500);
+            }
         }
-    }
-};
+    };
 
-// 画面全体でカーソルの変化を監視
-window.addEventListener("mousemove", (event) => {
-    if (!canvas.contains(event.target)) {
-        document.body.style.cursor = 'default';
-        return;
+    // 画面全体でカーソルの変化を監視
+    window.addEventListener("mousemove", (event) => {
+        if (!canvas.contains(event.target)) {
+            document.body.style.cursor = 'default';
+            return;
+        }
+        const intersects = setRay(event);
+        updateCursor(intersects);
+    });
+
+    // クリックイベント処理
+    window.addEventListener("click", handleClick);
+}
+
+// ページバック時にクラッシュを防止
+window.addEventListener('unload', () => {
+    if (renderer) {
+        renderer.dispose();
+        scene.dispose();
     }
-    const intersects = setRay(event);
-    updateCursor(intersects);
+    if (glassMaterial) {
+        glassMaterial.dispose();
+    }
+    if (hologramMaterial) {
+        hologramMaterial.dispose();
+    }
+    if (uniforms.uTexture.value) {
+        uniforms.uTexture.value.dispose();
+    }
 });
 
-// クリックイベント処理
-window.addEventListener("click", handleClick);
+// ブラウザバック対応
+let isVisibilityChanged = false;
+
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+        // document.body.classList.remove("slide-out");
+        window.location.reload(true);
+        isVisibilityChanged = true;
+    }
+});
+
+window.addEventListener("pageshow", (event) => {
+    if (event.persisted && !isVisibilityChanged) {
+        document.body.classList.remove("slide-out");
+        // WebGL の再初期化
+        initializeWebGL();
+    }
+    isVisibilityChanged = false;
+});
 
 // ウィンドウリサイズ対応
 function updateViewportSize(width, height) {
@@ -278,3 +310,5 @@ if (window.visualViewport) {
 } else {
     window.addEventListener('resize', handleResize);
 }
+
+initializeWebGL();  // 初期化処理
