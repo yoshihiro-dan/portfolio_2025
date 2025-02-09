@@ -1,6 +1,15 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
+function hideLoading() {
+    const loading = document.querySelector('.loading-area');
+    loading.classList.add('hidden');
+    setTimeout(() => {
+        loading.classList.remove("hidden");
+        loading.style.display = 'none';
+    }, 500);
+}
+
 // Canvas
 const canvas = document.querySelector('canvas.webgl');
 
@@ -253,30 +262,20 @@ function initializeWebGL() {
 
     // クリックイベント処理
     window.addEventListener("click", handleClick);
-}
 
-// ページバック時にクラッシュを防止
-window.addEventListener('unload', () => {
-    if (renderer) {
-        renderer.dispose();
-        scene.dispose();
-    }
-    if (glassMaterial) {
-        glassMaterial.dispose();
-    }
-    if (hologramMaterial) {
-        hologramMaterial.dispose();
-    }
-    if (uniforms.uTexture.value) {
-        uniforms.uTexture.value.dispose();
-    }
-});
+    hideLoading();
+}
 
 // ブラウザバック対応
 let isVisibilityChanged = false;
 
+// スマホ端末の判定
+function isMobileDevice() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1;
+}
+
 document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') {
+    if (document.visibilityState === 'visible' && isMobileDevice()) {
         // document.body.classList.remove("slide-out");
         window.location.reload(true);
         isVisibilityChanged = true;
@@ -286,8 +285,6 @@ document.addEventListener('visibilitychange', function() {
 window.addEventListener("pageshow", (event) => {
     if (event.persisted && !isVisibilityChanged) {
         document.body.classList.remove("slide-out");
-        // WebGL の再初期化
-        initializeWebGL();
     }
     isVisibilityChanged = false;
 });

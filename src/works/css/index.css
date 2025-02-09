@@ -6,7 +6,6 @@ body {
     overflow: hidden;
     color: #333;
     font-family: "Noto Sans JP", YuGothic, "游ゴシック", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-    /* font-feature-settings: "palt"; */
     transform: translateY(0);
     transition: transform 1.0s ease-in-out;
 }
@@ -29,7 +28,7 @@ body.slide-out {
 }
 
 canvas.webgl {
-    opacity: 0;
+    opacity: 0.1;
     transition: opacity 0.8s ease-in-out;
     margin-left: -15%;
     background-color: transparent;
@@ -39,6 +38,62 @@ canvas.webgl {
     canvas.webgl {
         margin-left: 0;
     }
+}
+
+.loading-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 100vw;
+    height: 100vh;
+    box-sizing: border-box;
+    background-color: #ffffff;
+    overflow: hidden;
+    background: linear-gradient(180deg, #0a0f29, #1a2a48, #314e6e, #4b7399, #1a2a48);
+    opacity: 1;
+    transition: opacity 0.5s ease-out;
+}
+
+.loading-area.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loading-text {
+    position: relative;
+    font-family: Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    font-size: 1rem;
+    color: transparent;
+    text-transform: uppercase;
+    -webkit-text-stroke: 1px #0a0f29;
+}
+
+.loading-text::before {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: hidden;
+    width: 0;
+    color: #0a0f29;
+    animation: textSlide 1s infinite linear;
+    content: "loading...";
+}
+
+@keyframes textSlide {
+    0% {
+        -webkit-text-stroke: 1px black;
+        width: 0;
+    }
+
+70%,
+100% {
+    width: 100%;
+    -webkit-text-stroke: 0px black;
+}
+
 }
 
 iframe[id*="riversun_window"] + div {

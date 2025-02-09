@@ -310,9 +310,6 @@ window.addEventListener("pageshow", (event) => {
     }
 });
 
-// **ページを離れる前にリソース解放**
-window.addEventListener("beforeunload", disposeWebGL)
-
 let resizeTimeout = null;
 function handleResize() {
     clearTimeout(resizeTimeout);
